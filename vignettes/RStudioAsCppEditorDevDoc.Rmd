@@ -1,0 +1,322 @@
+---
+title: "RStudio As An IDE For C++"
+author: "Peter von Rohr"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+bibliography: RStudioAsCppEditorDevDoc.bib
+---
+
+```{r DocumentSetup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = 'asis')
+```
+
+```{r ConnectionStatus, echo=FALSE,results='hide'}
+bOnLine <- TRUE
+```
+
+
+```{r HelperFunctions, echo=FALSE, results='hide'}
+showCppCode <- function(psCppFn){
+  sCppSrc <- readLines(psCppFn)
+  cat("```\n")
+  cat(sCppSrc, sep = "\n")
+  cat("```\n")
+  
+}
+```
+
+## Disclaimer
+The aim of this post is to see whether RStudio can be used as an IDE (Integrated Development Environment) for C/C++
+
+## Introduction
+C++ is a widely used compiled language. As in any other compiled language, software development is structured as a write-compile-link-execute-debug loop. Except for the writing part, IDEs (Integrated Development Environments) can help software developers to ease the burdon of all other steps of the development cycle. 
+
+### Known IDEs for C++
+The choice of IDE can depend on the operating system on which the programs are written and executed. On Mac OS X, XCode is probably the most widely used IDE. 
+
+```{r XcodeLogo, echo=FALSE, fig.show=TRUE}
+rmddochelper::insertOdgAsPng(psOdgFileStem = "XcodeLogo")
+```
+
+
+On Linux there is Kdevelop coming with the KDE window manager. DevC++ is a very convenient and light-weigt IDE on windows. Eclipse CDT is a version of Eclipse specially tailored for C++ development that can be used on any of the mentioned platforms. 
+
+```{r EclipseLogo, echo=FALSE, fig.show=TRUE}
+rmddochelper::insertOdgAsPng(psOdgFileStem = "EclipseLogo")
+```
+
+
+Similarly to Eclipse, there exist C++ plugins for NetBeans which is the open source IDE originally developed by SUN and now distributed by Oracle.
+
+```{r NetBeansLogo, echo=FALSE, fig.show=TRUE}
+rmddochelper::insertOdgAsPng(psOdgFileStem = "NetBeansLogo")
+```
+
+
+### Downside of IDEs
+The downside of most IDEs is that they are rather heavy weight. Most users who just want to write small command line programs are lost in the massive number of features offered by the above listed IDEs. 
+
+
+## Alternatives
+Alternatives to heavy-weight IDEs are slim editors like TextWrangler on the Mac or Notepad++ on Windows. Those editors provide a small set of functionalities but it feels that they are easier to use than the large-scale IDEs. 
+
+
+## RStudio - a small IDE
+Recently, RStudio has become quite well known in the community of R developers. Since R has several interfaces to be used with C/C++ it is quite likely that R developers also write C/C++ code. 
+
+The aim of this post is to make a few tests and check how useful RStudio might be as an IDE for C/C++. Our tests are based on a few assumptions which might affect the relevance of the tests and the usefulnes of this post. Here are our assumptions
+
+1. Development of C/C++ code using RStudio cannot be done without R. We also assume that fairly recent versions of R and RStudio are installed and available.
+2. The R packages `Rcpp` and `inline` are required to bridge between R and C/C++. Those packages can easily be installed using the function `install.packages(pkgs = c("Rcpp", "inline"))`. 
+3. Software programs are organized in projects and the structure of a project is determined by the R package functionality. But no further knowledge about R packages is required. The complete overhead that comes with R packages is hidden away by RStudio.
+
+
+## Prerequisites
+To run a C++ program, a compiler must be installed on the machine that we want to run the program on. The basic installation of R does not come with a C++ compiler. Since compilers are platform-specific, each operating system platform has different requirements. On Linux, in most cases a C++ compiler is already pre-installed. On MacOs X, the command-line tools of XCode must be available. On Windows, we recommend to install the `Rtools` program. 
+
+
+## First Steps
+The easiest way to start a C/C++ - project with RStudio is to create a new R-package and thereby selecting the option ``with Rcpp''. 
+
+```{r PackageTypeWithRcpp, echo=FALSE, fig.show=TRUE}
+rmddochelper::insertOdgAsPng(psOdgFileStem = "PackageTypeWithRcpp")
+```
+
+
+This automatically creates the directory `src` inside the project directory. Inside that `src` directory there are two files called `rcpp_hello.cpp` and `RcppExports.cpp`. These files contain some `Hello-World` example code in C++. The content of `rcpp_hello.cpp` is shown below
+
+```{r, echo=FALSE, results='asis'}
+sHwCppFn <-  "../src/rcpp_hello.cpp"
+showCppCode( psCppFn = sHwCppFn )
+```
+
+
+### Call to rcpp_hello()
+The function `rcpp_hello()` can be called from the R console using the function `Rcpp::sourceCpp()` which makes the content of the source file `rcpp_hellp.cpp` available to the R system. Please note that in this document the variable `sHwCppFn` was assigned earlier to the name of the C++ source file which corresponds to `r sHwCppFn`. 
+
+```{r RunRcppHello}
+Rcpp::sourceCpp(sHwCppFn)
+rcpp_hello()
+```
+
+Alternatively, we can load the content of the whole R-package using function `load_all()` from package `devtools`.
+
+## Create Your Own
+Running the `Hello World` example is fine at the beginning, but we are definitely aiming at something more interesting. We want to write our own functions. This can be done by adding a new `.cpp` file. New `.cpp` files can be added by clicking on `File > New > C++-File` as shown on the screen-shot below
+
+```{r NewCppFile, echo=FALSE, fig.show=TRUE}
+rmddochelper::insertOdgAsPng(psOdgFileStem = "NewCppFile")
+```
+
+
+This creates an empty file with an example function which looks as follows.
+
+```{r, echo=FALSE, results='asis'}
+showCppCode( psCppFn = "../src/rcpp_timestwo.cpp")
+```
+
+The content of this file can be adjusted according to our needs. Then the file with the new C++ source code is saved under a different name. As an example, we can create a C++ function called `vecSquare(x)`. The function `vecSquare(x)` computes the scalar square of its argument `x`. This function might look as follows.
+
+```{r, echo=FALSE, results='asis'}
+sVecSquareCppFn <- "../src/rcpp_vecSquare.cpp"
+showCppCode( psCppFn = sVecSquareCppFn )
+```
+
+The following block of statement first sources the newly created cpp-function using Rcpp's function sourceCpp(). This immediately executes the R-statement at the end of the source file. calls function `vecSquare()` with two different arguments. As seen from the last statement in the following code block, the function vecSquare() also accepts a vector as an argument. 
+
+```{r RunVecSquare}
+cat(" * Source file: ", sVecSquareCppFn, "\n")
+Rcpp::sourceCpp(sVecSquareCppFn)
+vecSquare(c(1:3))
+```
+
+## Convenient Functionality
+Like other IDEs RStudio comes with a set of convenitent functionalities. When it comes to working with cpp-source files, the main focus is on the source pane. When a cpp-source file is open the function bar changes to show specialized icons related to workig with cpp-source files. The icon representing the most relevant functionality is the right most icon on the left side of the source pane. The screen shot below shows the set of functionalities that is available.
+
+```{r CppSourceFunctionality, echo=FALSE, fig.show=TRUE}
+rmddochelper::insertOdgAsPng(psOdgFileStem = "CppSourceFunctionality")
+```
+
+The functionalities range from `Code Completion` to finding function definition and function usages to refactoring code to formatting comments and code to showing diagnostics. The search for functio definition and usage does also work accross language barriers, i.e., we can search for the definition of a cpp-function out of an R-script. This can easily be done using the `Find in Files` function under the menu `Edit`.
+
+```{r FindInFiles, echo=FALSE, fig.show=TRUE}
+rmddochelper::insertOdgAsPng(psOdgFileStem = "FindInFiles")
+```
+
+
+## Seamless R and C++
+Dirk Edelbuettel has written a monograph (@Edde2013) on the package `Rcpp` which was already used in this post. In what follows some examples of that book are reproduced to illustrate how R can be extended using the C++ language. 
+
+In the following few sections, some of the material of the book @Edde2013 is used to explain, how C++ code can be developed using RStudio and how this code can effectively be used from R.
+
+### Using inline - An even simpler method of integrating C++ code
+As mentioned in Section 1.2 of @Edde2013,  the R-package __inline__ provides a wrapper around the compiling, linking and loading steps that are required when using externally compiled code in R. Package __inline__ provides function `cxxfunction()` as a single entry point to transform a character string into an executable function. How this works is shown below using the example of computing Fibonacci numbers. 
+
+```{r CxxFib, eval=bOnLine}
+incltxt <- '
+int cpp_fib(const int x){
+  if (x == 0) return(0);
+  if (x == 1) return(1);
+  return(cpp_fib(x-1) + cpp_fib(x-2));
+}
+'
+# above snippets is used in the follwing function definition
+fibR <- inline::cxxfunction(signature(xs = "int"),
+                    plugin = "Rcpp",
+                    incl = incltxt,
+                    body = '
+  int x = Rcpp::as<int>(xs);
+  return Rcpp::wrap( cpp_fib(x) );'
+)
+```
+
+Two arguments are supplied to function `cxxfunction()`
+
+1. the pure C++ function which is passed as argument `includes`. This allows to specify more include directives or even function or class definitions. 
+2. the wrapper function which is specified as argument `body`.
+
+Once the `cxxfunction()` has been run successfully, the resulting function `fibR` can be called like any other ordinary R-function. 
+
+### Using Rcpp attributes
+The inline package is very convenient, as it allows to extend functionality by compiled code from within an R session. More recently, __inline__ has been complemented by a new approach that is based on an upcoming feature in the new C++ standard called the "attributes". As of version 0.10.0 of Rcpp, attributes are implemented internally. The only thing the programmer has to do, is to declare certain "attributes", notably whether a certain function has to be exported for use from R or from other C++ functions or both. 
+
+This approach of declaring attributes in C++ source files was already show at the beginning of this section. RStudio uses "Rcpp attributes" as its default method for making C++ source code available to R when a new source file is added via the RStudio menu "File > New File > C++ File". 
+
+A simple example of using the "Rcpp attributes" framework is shown below.
+
+```{r FibRcppAttrCode, echo=FALSE, results='asis'}
+showCppCode( psCppFn = "../src/fibonacci.cpp" )
+```
+
+The key element in the above code snippet is the "[[Rcpp::export]]" attribute preceding the function declaration. As already shown at the beginning of this section, the C++ function "fibonacci()" can be called like an ordinary R-function. 
+
+```{r FibRcppAttrCall}
+Rcpp::sourceCpp( file = "../src/fibonacci.cpp" )
+fibonacci(10)
+```
+
+### A second solution to Fibonacci using memoization
+The problem with computing Fibonacci numbers with simple recursions is that many values are computed several times. The idea behind memoization is to store all values as soon as they are computed. New function values are taken from the memory, if they have been computed before. The following piece of code uses memoization for computing Fibonacci numbers. 
+
+```{r FibCppMemo, eval=bOnLine}
+mincltxt <- '
+#include <algorithm>
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+#include <iostream>
+
+class Fib {
+public:
+  Fib(unsigned int n = 1000) {
+    memo.resize(n); // reserve n elements
+    std::fill( memo.begin(), memo.end(), NAN ); // set to NaN
+    memo[0] = 0.0; // initialize for
+    memo[1] = 1.0; // n=0 and n=1
+  }
+  double fibonacci(int x) {
+    if (x < 0) // guard against bad input
+      return( (double) NAN );
+    if (x >= (int) memo.size())
+      throw std::range_error(\"x too large for implementation\");
+    if (! std::isnan(memo[x]))
+      return(memo[x]); // if exist, reuse values
+    // build precomputed value via recursion
+    memo[x] = fibonacci(x-2) + fibonacci(x-1);
+    return( memo[x] ); // and return
+  }
+private:
+  std::vector< double > memo; // internal memory for precomp.
+};
+'
+## now use the snippet above as well as one argument conversion
+## in as well as out to provide Fibonacci numbers via C++
+mfibRcpp <- inline::cxxfunction(signature(xs="int"),
+                        plugin="Rcpp",
+                        includes=mincltxt,
+                        body='
+  int x = Rcpp::as<int>(xs);
+  Fib f;
+  return Rcpp::wrap( f.fibonacci(x-1) );
+')
+```
+
+The above shown code block defines a simple C++ class called "Fib" consisting of three elements.
+
+1. a constructor which is called upon initialisation
+2. a public function that computes the Fibonacci numbers and 
+3. a private vector that holds the memoization values
+
+Hence this example shows how C++ classes can be used in connection with __inline__. The actual wrapper function 
+just instantiates an object "f" of class "Fib" and invokes the public function to computed the Fibonacci numbers. 
+
+A call to this last function can be done the same way as any other R-function is called using 
+
+```{r mFibCall}
+mfibRcpp(14)
+```
+
+
+## A third solution - Iteration
+No matter what, the recursive solution has drawbacks whether it is implemented in R or in C++. Those can only be 
+addressed when using an iterative approach to compute the Fibonacci numbers. The following code block shows a 
+solution in C++, again using the function `cxxfunction()` from package __inline__. 
+
+```{r FibIter}
+## linear / iterative solution
+fibRcppIter <- inline::cxxfunction(signature(xs="int"),
+                           plugin="Rcpp",
+                           body='
+  int n = Rcpp::as<int>(xs);
+  double first = 0;
+  double second = 1;
+  double third = 0;
+  for (int i=0; i<n; i++) {
+    third = first + second;
+    first = second;
+    second = third; 
+  }
+  return Rcpp::wrap(first);
+')
+```
+
+The above shown function definition shows that the iterative computation of the Fibonacci numbers can directly be implemented in the wrapper function (argument `body` of inline::cxxfunction()). No further includes are required here, hence the argument `includes` is missing in the above shown definition of `fibRcppIter()`. This last solution is bound to be the fastest, as loops in C++ are certainly faster than recursions. A rather quick and dirty comparison shows the following results
+
+```{r FibComp}
+nFibNum <- 30
+system.time(fibR(nFibNum))
+system.time(fibRcppIter(nFibNum))
+```
+
+
+## A second example
+The second example taken from @Edde2013 considers so called vector autoregressive processes (VAR). The simplest case of a two-dimensional VAR of order one can be specified as 
+
+$$\mathbf{x}_t = A \mathbf{x}_{t-1} + \mathbf{u}_t$$
+
+where $\mathbf{x}_t$, $\mathbf{x}_t$ and $\mathbf{u}_t$ are all vectors of length two and $A$ is a two by two matrix. Subscripts $t$ and $t-1$ stand for two consecutive time points. 
+
+### A solution in R
+VAR systems are usually studied by simulation. For that reason, suitable data has to be generated. Due to the interdependence of the elements in the VAR model, it cannot be vectorized in an easy way. As a result, we have to loop explicitly. 
+
+```{r VarSimR}
+## parameter and error terms used throughout
+set.seed(9876)
+a <- matrix(c(0.5,0.1,0.1,0.5),nrow=2)
+u <- matrix(rnorm(10000),ncol=2)
+## Let’s start with the R version
+rSim <- function(coeff, errors) {
+  simdata <- matrix(0, nrow(errors), ncol(errors))
+  for (row in 2:nrow(errors)) {
+    simdata[row,] = coeff %*% simdata[(row-1),] + errors[row,]
+  }
+  return(simdata)
+}
+
+rData <- rSim(a, u)
+dim(rData)
+```
+
+
+# References
+
